@@ -160,3 +160,111 @@ ul {
 .button-draw:hover {
     background-color: var(--color-button-hover);
 }
+
+/* Estilos para os items da lista de amigos */
+.name-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    margin: 8px 0;
+    background-color: var(--color-white);
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.name-list li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Botão para remover amigos da lista */
+.botao-remover {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    padding: 2px 5px;
+    border-radius: 50%;
+    margin-left: 10px;
+    box-shadow: none;
+}
+
+.botao-remover:hover {
+    opacity: 1;
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+/* Estados dos resultados */
+.sorteando {
+    color: orange;
+    font-style: italic;
+    animation: pulse 1s infinite;
+}
+
+.sorteado {
+    color: #05DF05;
+    font-weight: bold;
+    animation: pulse 1s;
+}
+
+.removido {
+    color: #ff6666;
+    font-style: italic;
+}
+
+/* Contador de sorteios */
+.contador-sorteio {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-top: 5px;
+}
+
+/* Estilo para lista vazia */
+.lista-vazia {
+    font-style: italic;
+    opacity: 0.7;
+    text-align: center;
+}
+
+/* Botões de controle adicionais */
+.botoes-controle {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.button-control {
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.button-control.limpar {
+    background-color: #ff6666;
+    color: white;
+}
+
+.button-control.reiniciar {
+    background-color: #66a3ff;
+    color: white;
+}
+
+.button-control:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Animação de pulso */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
