@@ -21,17 +21,21 @@ const ENCRYPTION_KEY = "amigoSecreto_2023_chave_segura";
 
 /**
  * Criptografa dados antes de salvar no localStorage
+ * Implementa uma criptografia simples usando XOR com uma chave e codificação Base64
+ * para proteger os dados armazenados no localStorage.
+ * 
  * @param {object} dados - Dados a serem criptografados
- * @returns {string} - Dados criptografados
+ * @returns {string} - Dados criptografados em formato Base64
  */
 function criptografarDados(dados) {
     try {
-        // Converte o objeto para string
+        // Converte o objeto para string JSON
         const dadosString = JSON.stringify(dados);
         
         // Implementação simples de XOR para criptografia
         let resultado = '';
         for (let i = 0; i < dadosString.length; i++) {
+            // A cada caractere, aplica XOR com o caractere correspondente da chave
             const charCode = dadosString.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
             resultado += String.fromCharCode(charCode);
         }
@@ -40,32 +44,36 @@ function criptografarDados(dados) {
         return btoa(resultado);
     } catch (e) {
         console.error("Erro ao criptografar dados:", e);
-        return JSON.stringify(dados); // Fallback
+        return JSON.stringify(dados); // Fallback em caso de erro
     }
 }
 
 /**
  * Descriptografa dados do localStorage
+ * Reverte o processo de criptografia, decodificando de Base64 e aplicando XOR
+ * com a mesma chave para recuperar os dados originais.
+ * 
  * @param {string} dadosCriptografados - Dados criptografados
- * @returns {object} - Dados descriptografados
+ * @returns {object} - Dados descriptografados como objeto JavaScript
  */
 function descriptografarDados(dadosCriptografados) {
     try {
         // Decodifica de Base64
         const dadosEncriptados = atob(dadosCriptografados);
         
-        // Reverte o XOR
+        // Reverte o XOR com a mesma chave
         let resultado = '';
         for (let i = 0; i < dadosEncriptados.length; i++) {
+            // Aplica XOR com o mesmo padrão usado na criptografia
             const charCode = dadosEncriptados.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
             resultado += String.fromCharCode(charCode);
         }
         
-        // Parse do JSON
+        // Parse do JSON para recuperar o objeto
         return JSON.parse(resultado);
     } catch (e) {
         console.error("Erro ao descriptografar dados:", e);
-        return JSON.parse(dadosCriptografados); // Fallback
+        return JSON.parse(dadosCriptografados); // Fallback em caso de erro
     }
 }
 
@@ -191,6 +199,10 @@ function adicionarAmigo() {
 
 /**
  * Atualiza a lista de amigos na interface
+ * Esta função recria toda a lista de amigos na interface do usuário,
+ * adicionando os botões de remoção necessários para cada item.
+ * Os botões de remoção usam delegação de eventos através do document.addEventListener
+ * ao invés de manipuladores onclick diretos, para melhor performance e manutenção.
  */
 function atualizarListaAmigos() {
     const lista = document.getElementById('listaAmigos');
@@ -224,12 +236,6 @@ function atualizarListaAmigos() {
         botaoRemover.textContent = '❌';
         botaoRemover.className = 'botao-remover';
         botaoRemover.title = `Remover ${amigo} da lista`;
-        
-        // Usa o atributo data ao invés do closure que captura 'i'
-        botaoRemover.onclick = function() { 
-            const indiceAtual = parseInt(this.closest('li').dataset.indice);
-            removerAmigo(indiceAtual); 
-        };
         
         botoesContainer.appendChild(botaoRemover);
         
@@ -644,17 +650,23 @@ function sortearAmigo() {
 
 /**
  * Verificação de possibilidade de deadlock no sorteio
+ * Esta função detecta uma situação de "deadlock" onde a última pessoa só poderia 
+ * sortear a si mesma, o que não é permitido nas regras do amigo secreto.
+ * Quando detectado, desfaz o último sorteio para permitir uma nova configuração.
+ * @returns {boolean} - True se um deadlock foi detectado e corrigido
  */
 function verificarPossibilidadeDeDeadlock() {
+    // Identifica participantes que ainda não sortearam
     const participantesRestantes = amigos.filter(amigo => 
         !sorteiosSenha.some(s => s.sorteador === amigo)
     );
     
+    // Identifica amigos que ainda não foram sorteados
     const amigosSorteaveis = amigos.filter(amigo => 
         !amigosSorteados.includes(amigo)
     );
     
-    // Se só resta uma pessoa para sortear e ela só pode tirar a si mesma
+    // Condição de deadlock: só resta uma pessoa para sortear e ela só pode tirar a si mesma
     if (participantesRestantes.length === 1 && 
         amigosSorteaveis.length === 1 && 
         participantesRestantes[0] === amigosSorteaveis[0]) {
@@ -1446,14 +1458,18 @@ function importarLista() {
 }
 
 /**
- * Aplica uma função hash simples a uma string
+ * Aplica uma função hash simples (não criptográfica) a uma string
+ * Esta é uma função de hash usada apenas para gerar identificadores simples
+ * e não para segurança criptográfica.
+ * 
  * @param {string} texto - Texto a ser aplicado o hash
- * @returns {string} - Hash do texto
+ * @returns {string} - Hash em formato hexadecimal
  */
 function aplicarHash(texto) {
     let hash = 0;
     if (texto.length === 0) return hash.toString();
     
+    // Implementação do algoritmo djb2
     for (let i = 0; i < texto.length; i++) {
         const char = texto.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
@@ -1609,7 +1625,10 @@ function adicionarScriptConfetti() {
 }
 
 /**
- * Realiza o sorteio completo de uma vez
+ * Realiza o sorteio completo de todos os amigos de uma vez
+ * Implementa o algoritmo de Fisher-Yates para embaralhar os amigos e garantir
+ * que ninguém sorteie a si mesmo, verificando e recomeçando se necessário.
+ * Cria uma interface para cada participante acessar seu próprio sorteio.
  */
 function sortearTodos() {
     if (amigos.length < 2) {
@@ -1633,24 +1652,26 @@ function sortearTodos() {
         }
     }
     
+    // Se houver alguém sorteando a si mesmo, executa novamente o algoritmo
     if (precisaReorganizar) {
         return sortearTodos(); // Recursão para tentar novamente
     }
     
     mostrarNotificacao("Sorteio automático realizado com sucesso!", "sucesso");
     
-    // Criar um botão para cada participante acessar seu sorteio com uma senha pré-definida
+    // Cria interface para visualização dos resultados
     const resultado = document.getElementById('resultado');
     resultado.innerHTML = '<li class="sorteado">Sorteio automático completo! Cada participante pode consultar quem tirou:</li>';
     
     const listaParticipantes = document.createElement('ul');
     listaParticipantes.className = 'lista-participantes-sorteio';
     
+    // Para cada amigo, gera uma senha única e armazena o sorteio
     amigos.forEach((amigo, index) => {
         const senha = aplicarHash(amigo + "salt" + Date.now());
         const sorteioId = Date.now().toString(16) + '_' + Math.random().toString(16).substring(2);
         
-        // Adiciona ao histórico com senha
+        // Armazena o resultado do sorteio com a senha
         sorteiosSenha.push({
             id: sorteioId,
             sorteador: amigo,
@@ -1660,7 +1681,7 @@ function sortearTodos() {
             hora: new Date().toLocaleTimeString()
         });
         
-        // Cria item na lista de acesso
+        // Cria item na lista com botão para visualização
         const itemLista = document.createElement('li');
         itemLista.innerHTML = `
             <div class="participante-sorteio">
@@ -1675,19 +1696,19 @@ function sortearTodos() {
 
     resultado.appendChild(listaParticipantes);
     
-    // Adiciona eventos aos botões
+    // Configura os eventos para os botões de visualização
     document.querySelectorAll('.button-ver-sorteado.mini').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
             const senha = this.getAttribute('data-senha');
             
-            // Busca o sorteio
+            // Busca o sorteio correspondente
             const sorteio = sorteiosSenha.find(s => s.id === id);
             if (sorteio) {
-                // Armazena a senha gerada no sorteio
+                // Armazena a senha gerada e registra a visualização
                 sorteio.senhaExibida = senha;
                 
-                // Adiciona ao histórico normal para exibição
+                // Adiciona ao histórico para estatísticas
                 const dataHora = new Date();
                 const dataStr = dataHora.toLocaleDateString();
                 const horaStr = dataHora.toLocaleTimeString();
@@ -1699,7 +1720,7 @@ function sortearTodos() {
                     hora: horaStr
                 });
                 
-                // Muda o visual do botão para indicar que foi visualizado
+                // Atualiza o visual do botão
                 this.innerHTML = '✓ Visualizado';
                 this.style.backgroundColor = '#4CAF50';
                 this.style.color = 'white';
@@ -1717,18 +1738,22 @@ function sortearTodos() {
         });
     });
     
+    // Finaliza o sorteio
     salvarDados();
     amigosSorteados = [...sorteaveis]; // Marca todos como sorteados
 }
 
 /**
  * Função para aplicar hash em senhas usando SHA-256
+ * Implementa hashing criptográfico seguro usando a Web Crypto API,
+ * combinando a senha com um valor salt único para aumentar a segurança.
+ * 
  * @param {string} senha - Senha em texto puro
  * @param {string} salt - Valor único para aumentar a segurança
- * @returns {Promise<string>} - Hash da senha
+ * @returns {Promise<string>} - Hash hexadecimal da senha com salt
  */
 async function hashSenha(senha, salt) {
-    // Combina a senha com o salt
+    // Combina a senha com o salt para evitar ataques de tabela rainbow
     const dadosParaHash = senha + salt;
     
     // Converte para formato ArrayBuffer para usar com a Web Crypto API
@@ -1738,7 +1763,7 @@ async function hashSenha(senha, salt) {
     // Gera o hash usando SHA-256
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     
-    // Converte o ArrayBuffer para string em base64
+    // Converte o ArrayBuffer para string hexadecimal
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
@@ -1923,7 +1948,11 @@ function verificarEstadoSalvo() {
     }
 }
 
-// Delegação de eventos para os botões de remover
+/**
+ * Sistema de delegação de eventos para os botões de remover
+ * Usa o padrão de delegação de eventos para lidar com cliques em botões de remover,
+ * o que é mais eficiente que adicionar event listeners separados para cada botão.
+ */
 document.addEventListener('click', function(event) {
     const botaoRemover = event.target.closest('.botao-remover');
     if (botaoRemover) {
